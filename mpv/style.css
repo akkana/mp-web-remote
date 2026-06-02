@@ -24,12 +24,11 @@ a.browse {
 button { border: 0; }
 
 .dialog {
-    font-size: 2em;
-    /* I don't know why button font size doesn't inherit.
-       Or why making it 2em makes it much bigger than the size of the
-       link next to it.
+    font-size: 1.2em;
+    /* Unless explicitly specified, button comes out tiny,
+     * ignoring the font-size set for the rest of the dialog.
      */
-    button { font-size: 1.5em; }
+    button { font-size: 1em; }
 }
 
 .farright { float: right; }

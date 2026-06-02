@@ -121,6 +121,19 @@ include "header.php";
 
 <center>
 
+<dialog id="delete-dialog" class="dialog">
+  <p>Really delete?
+
+  <br /><br />
+  <a href="?action=reallydelete">
+    <button commandfor="delete-dialog" id="reallydeletebtn"
+            command="close">Yes</button></a>
+
+  &nbsp; &nbsp; &nbsp; &nbsp;
+  <button id="dontdeletebtn"
+          commandfor="delete-dialog" command="close">No</button>
+</dialog>
+
 <table class="controls">
 <tr>
 <td><a href="?action=back">
@@ -152,8 +165,10 @@ include "header.php";
 <td><a href="?action=volumedown">
     <img src="images/volume-down.svg"
          width="64" height="64" alt="Volume down"></a></td>
-<td><button command="show-modal" commandfor="delete-dialog">
+
+<td><button id="deleteButton" command="show-modal" commandfor="delete-dialog">
     <img src="images/trash.svg" width="64" height="64" alt="Delete">
+
 <td><a href="?action=volumeup">
     <img src="images/volume-up.svg"
          width="64" height="64" alt="Volume down"></a></td>
@@ -170,31 +185,45 @@ include "header.php";
 
 </tr>
 
-</table>
-
 <!--
 <td><a href="?action=aspect">Aspect</a>
 <td><a href="?action=status">Get status</a>
-<td><a href="?action=close">Quit</a>
  -->
+
+</table>
 
 <div id="status">
 <?php echo $message; ?>
 </div>
 
-<dialog id="delete-dialog" class="dialog">
-  <p>Really delete?
-
-  &nbsp; &nbsp; &nbsp; &nbsp;
-  <a href="?action=reallydelete"><button commandfor="delete-dialog" command="close">Yes</button></a>
-
-  &nbsp; &nbsp; &nbsp; &nbsp;
-  <button commandfor="delete-dialog" command="close">No</button>
-</dialog>
-
 </center>
 
 <script language="JavaScript">
+
+ /* Set up the delete dialog in case of an older browser
+  * that doesn't understand commandfor
+  */
+ var btn = document.getElementById("deleteButton");
+ btn.command = null;
+ btn.commandfor = null;
+ btn.onclick = function(e) {
+     var dialog = document.getElementById("delete-dialog");
+     dialog.showModal();
+ };
+ btn = document.getElementById("reallydeletebtn");
+ btn.command = null;
+ btn.commandfor = null;
+ btn.onclick = function(e) {
+     window.location.href = "controls.php?action=reallydelete";
+ };
+ btn = document.getElementById("dontdeletebtn");
+ btn.command = null;
+ btn.commandfor = null;
+ btn.onclick = function(e) {
+     var dialog = document.getElementById("delete-dialog");
+     dialog.close();
+ };
+
   var volumeSlider = document.getElementById("volumeSlider");
   volumeSlider.onchange = function() {
       // Writing to a file is hard from JS (maybe impossible?)
