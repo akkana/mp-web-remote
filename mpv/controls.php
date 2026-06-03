@@ -85,6 +85,8 @@ if (isset($_GET['action'])) {
 
             send_mpv_cmd('{ "command": ["set_property", "pause", true] }');
             $paused = 1;
+            send_mpv_cmd('{"command": [ "show-text", "Deleted: '
+                       . basename($filepath) . '", 5000]  }');
 
             shell_exec('rm ' . $filepath);
             //$message = 'Deleted ' . $filepath;

@@ -39,6 +39,13 @@ asort($dirs);
 
 echo '<ul class="browselist">';
 
+$p = explode('/', $viddir);
+array_pop($p);
+$s = urlencode(implode('/', $p));
+echo "<li><a href=\"browse.php?dir={$s}\">Up One Level</a><br />";
+
+echo "<li><a href=\"index.php\">Main Menu</a>";
+
 foreach ($dirs as $d) {
     $bn = basename($d);
     $encoded = urlencode(trim("$d"));
@@ -52,13 +59,6 @@ foreach ($files as $f) {
     if ($bn == $filename)
         echo " &nbsp; &nbsp; &larr; NOW PLAYING";
 }
-
-$p = explode('/', $viddir);
-array_pop($p);
-$s = urlencode(implode('/', $p));
-echo "<li><a href=\"browse.php?dir={$s}\">Up One Level</a><br />";
-
-echo "<li><a href=\"index.php\">Main Menu</a>";
 
 ?>
 
