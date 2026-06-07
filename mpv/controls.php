@@ -72,7 +72,7 @@ if (isset($_GET['action'])) {
 
         case 'aspect':
             // change_rectangle <val1> <val2>
-            $message = "Sorry, don't know how to change aspect ratio yet";
+            $message .= "Sorry, don't know how to change aspect ratio yet";
             break;
 
         case 'status':
@@ -89,14 +89,23 @@ if (isset($_GET['action'])) {
             send_mpv_cmd('{"command": [ "show-text", "Deleted: '
                        . basename($filepath) . '", 5000]  }');
 
-            shell_exec('rm ' . $filepath);
-            //$message = 'Deleted ' . $filepath;
+            unlink($filepath);
+            $message .= 'Deleted ' . $filepath;
             $encoded = urlencode(dirname("$filepath"));
 
-            // XXX If dir is empty, rmdir it
+            // If dir is empty, rmdir it
+            $dir = dirname($filepath);
+            if (count(scandir($dir)) <= 2) {
+                error_log("Removing now-empty directory " . $dir, 0);
+                rmdir($dir);
+                sleep(1);
+                error_log("going to" . dirname($dir), 0);
+                header('Location: browse.php?dir=' . urlencode(dirname($dir)));
+                return;
+            }
 
             sleep(1);
-            header("Location: browse.php?dir={$encoded}");
+            header('Location: browse.php?dir=' . urlencode($dir));
             break;
 
         case 'poweroff':
@@ -119,7 +128,7 @@ if (isset($_GET['action'])) {
                            . print_r($config, true) . '", 5000]  }');
             } else {
                 send_mpv_cmd('{"command": [ "show-text", "Not saving config, couldn\'t get mediadir", 5000] }');
-                $message = "Not saving config, couldn't get mediadir";
+                $message .= "Not saving config, couldn't get mediadir";
                 error_log("Not saving config, couldn't get mediadir", 0);
             }
 

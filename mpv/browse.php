@@ -1,9 +1,11 @@
 <?php
 
 $viddir = '/' . trim($_GET['dir'], '/');
-// print("viddir =" . $viddir);
 
-require 'commands.php';
+include 'commands.php';
+include 'configfile.php';
+
+$message = '';
 
 // Find out what's currently playing, if anything
 try {
@@ -20,6 +22,33 @@ include "header.php";
 if (! $viddir) {
     echo "Nothing found";
     return;
+}
+
+function delTree($dir)
+{
+    $files = array_diff(scandir($dir), array('.','..'));
+    foreach ($files as $file) {
+        (is_dir("$dir/$file")) ? delTree("$dir/$file") : unlink("$dir/$file");
+    }
+    return rmdir($dir);
+}
+
+if (isset($_GET['cmd']) && $_GET['cmd'] == 'deletedir') {
+    // Check to make sure it's under the media dir,
+    // so this can't be used to delete higher-up directories
+    $config = read_config();
+    if (str_contains($viddir, $config['mediadir'])) {
+        error_log("Deleting " . $viddir);
+        delTree($viddir);
+        header('Location: browse.php?dir=' . urlencode(dirname($viddir)));
+        return;
+    } else {
+        $message .= '<p><b>Refusing to delete: ' . $viddir
+                 . 'is not inside the media dir</b></p>';
+        error_log('Refusing to delete: ' . $viddir .
+                  ' is not inside the media dir', 0);
+        $viddir = $config['mediadir'];
+    }
 }
 
 $files = array();
@@ -60,9 +89,17 @@ foreach ($files as $f) {
         echo " &nbsp; &nbsp; &larr; NOW PLAYING";
 }
 
+// Finally, add an option to delete this directory
+echo '<li><a href="browse.php?dir=' . urlencode($viddir)
+   . '&cmd=deletedir">Delete this directory</a>';
+
 ?>
 
 </ul>
+
+<div id="status">
+<?php echo $message; ?>
+</div>
 
 <?php require 'footer.php'; ?>
 
