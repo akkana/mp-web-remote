@@ -17,9 +17,11 @@ table.controls {
     tr.slider td { height: 1.15em; line-height: .5em; }
 }
 
-a.browse {
-    font-size: 2em;
-}
+ul.browselist li.file { }
+
+ul.browselist li.dir { font-style: italic; }
+
+ul.browselist li.cmd { font-size: .8em; font-style: italic; }
 
 button { border: 0; }
 

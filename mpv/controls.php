@@ -1,14 +1,62 @@
 <?php
 
-if (! `pidof mpv`) {
-    header('Location: index.php');
-    exit();
-}
-
 include 'commands.php';
 include 'configfile.php';
 
 $message = '&nbsp;';
+
+// The one action this file can do without mpv running is power off
+if (isset($_GET['action']) && $_GET['action'] == 'poweroff') {
+    error_log("controls poweroff", 0);
+
+    // Get and save the current position
+    $filepath = send_mpv_cmd('{ "command": ["get_property", "path"] }');
+    $curpos = send_mpv_cmd('{ "command": ["get_property", "time-pos/full"] }');
+
+    error_log("Trying to save current position before exiting", 0);
+    $config = read_config();
+    if (array_key_exists('mediadir', $config)) {
+        if (! empty($filepath))
+            $config['filepath'] = $filepath;
+        if (! empty($curpos))
+            $config['position'] = $curpos;
+        write_config($config);
+
+        send_mpv_cmd('{"command": [ "show-text", "saved: '
+                   . print_r($config, true) . '", 5000]  }');
+    } else {
+        send_mpv_cmd('{"command": [ "show-text", "Not saving config, couldn\'t get mediadir", 5000] }');
+        $message .= "Not saving config, couldn't get mediadir";
+        error_log("Not saving config, couldn't get mediadir", 0);
+    }
+
+    // Quit mpv, to make sure it saves the current position
+    // This fails if mpv isn't running, so enclose in a try.
+    try {
+        send_mpv_cmd('{ "command": [ "quit" ] }');
+        sleep(2);
+    } catch (Exception $e) {
+        error_log("quit didn't work, probably mpv isn't running");
+    }
+
+    shell_exec('sh -c "sleep 3; sudo poweroff" &');
+
+    // Redirect to a page with few images.
+    // For some reason, on Android DDG,
+    // images disappear after the host shuts down
+    // but the rest of the page still displays fine.
+    // However, this doesn't work; it gets a 404
+    // even though the shutdown shouldn't happen until
+    // well after the page is loaded.
+    header("Location: index.php");
+
+    return;
+}
+
+if (! `pidof mpv`) {
+    header('Location: index.php');
+    exit();
+}
 
 # Get paused state, since this affects lots of other things,
 # like which commands might unwantedly un-pause.
@@ -106,47 +154,6 @@ if (isset($_GET['action'])) {
 
             sleep(1);
             header('Location: browse.php?dir=' . urlencode($dir));
-            break;
-
-        case 'poweroff':
-            error_log("controls poweroff", 0);
-
-            // Get and save the current position
-            $filepath = send_mpv_cmd('{ "command": ["get_property", "path"] }');
-            $curpos = send_mpv_cmd('{ "command": ["get_property", "time-pos/full"] }');
-
-            error_log("Trying to save current position before exiting", 0);
-            $config = read_config();
-            if (array_key_exists('mediadir', $config)) {
-                if (! empty($filepath))
-                    $config['filepath'] = $filepath;
-                if (! empty($curpos))
-                    $config['position'] = $curpos;
-                write_config($config);
-
-                send_mpv_cmd('{"command": [ "show-text", "saved: '
-                           . print_r($config, true) . '", 5000]  }');
-            } else {
-                send_mpv_cmd('{"command": [ "show-text", "Not saving config, couldn\'t get mediadir", 5000] }');
-                $message .= "Not saving config, couldn't get mediadir";
-                error_log("Not saving config, couldn't get mediadir", 0);
-            }
-
-            // Quit mpv, to make sure it saves the current position
-            // XXX This fails if mpv isn't running
-            send_mpv_cmd('{ "command": [ "quit" ] }');
-            sleep(2);
-
-            // shell_exec('sh -c "sleep 3; sudo poweroff" &');
-
-            // Redirect to a page with few images.
-            // For some reason, on Android DDG,
-            // images disappear after the host shuts down
-            // but the rest of the page still displays fine.
-            // However, this doesn't work; it gets a 404
-            // even though the shutdown shouldn't happen until
-            // well after the page is loaded.
-            header("Location: index.php");
             break;
     }
 }

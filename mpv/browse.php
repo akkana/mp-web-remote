@@ -71,26 +71,26 @@ echo '<ul class="browselist">';
 $p = explode('/', $viddir);
 array_pop($p);
 $s = urlencode(implode('/', $p));
-echo "<li><a href=\"browse.php?dir={$s}\">Up One Level</a><br />";
+echo "<li class='cmd'><a href=\"browse.php?dir={$s}\">Up One Level</a><br />";
 
-echo "<li><a href=\"index.php\">Main Menu</a>";
+echo "<li class='cmd'><a href=\"index.php\">Main Menu</a>";
 
 foreach ($dirs as $d) {
     $bn = basename($d);
     $encoded = urlencode(trim("$d"));
-    echo "<li><a href=\"browse.php?dir={$encoded}\">{$bn}</a>";
+    echo "<li class='dir'><a href=\"browse.php?dir={$encoded}\">{$bn}</a>";
 }
 
 foreach ($files as $f) {
     $bn = basename($f);
     $encoded = urlencode(trim("$f"));
-    echo "<li><a href=\"play.php?file={$encoded}\">{$bn}</a>";
+    echo "<li class='file'><a href=\"play.php?file={$encoded}\">{$bn}</a>";
     if ($bn == $filename)
         echo " &nbsp; &nbsp; &larr; NOW PLAYING";
 }
 
 // Finally, add an option to delete this directory
-echo '<li><a href="browse.php?dir=' . urlencode($viddir)
+echo '<li class="cmd"><a href="browse.php?dir=' . urlencode($viddir)
    . '&cmd=deletedir">Delete this directory</a>';
 
 ?>
