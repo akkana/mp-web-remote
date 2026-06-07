@@ -6,6 +6,7 @@ if (! `pidof mpv`) {
 }
 
 include 'commands.php';
+include 'configfile.php';
 
 $message = '&nbsp;';
 
@@ -80,7 +81,7 @@ if (isset($_GET['action'])) {
         case 'reallydelete':
             // sadly, pausing_keep_force doesn't work with get_property filename
             // or path: it doesn't print anything
-            $filepath = send_mpv_cmd('{ "command": ["get_property", "path"] }\n');
+            $filepath = send_mpv_cmd('{ "command": ["get_property", "path"] }');
             error_log("filepath: " . $filepath);
 
             send_mpv_cmd('{ "command": ["set_property", "pause", true] }');
@@ -91,19 +92,43 @@ if (isset($_GET['action'])) {
             shell_exec('rm ' . $filepath);
             //$message = 'Deleted ' . $filepath;
             $encoded = urlencode(dirname("$filepath"));
+
+            // XXX If dir is empty, rmdir it
+
             sleep(1);
             header("Location: browse.php?dir={$encoded}");
             break;
 
         case 'poweroff':
             error_log("controls poweroff", 0);
-            //header("Location: simplecommands.php?cmd=poweroff");
+
+            // Get and save the current position
+            $filepath = send_mpv_cmd('{ "command": ["get_property", "path"] }');
+            $curpos = send_mpv_cmd('{ "command": ["get_property", "time-pos/full"] }');
+
+            error_log("Trying to save current position before exiting", 0);
+            $config = read_config();
+            if (array_key_exists('mediadir', $config)) {
+                if (! empty($filepath))
+                    $config['filepath'] = $filepath;
+                if (! empty($curpos))
+                    $config['position'] = $curpos;
+                write_config($config);
+
+                send_mpv_cmd('{"command": [ "show-text", "saved: '
+                           . print_r($config, true) . '", 5000]  }');
+            } else {
+                send_mpv_cmd('{"command": [ "show-text", "Not saving config, couldn\'t get mediadir", 5000] }');
+                $message = "Not saving config, couldn't get mediadir";
+                error_log("Not saving config, couldn't get mediadir", 0);
+            }
 
             // Quit mpv, to make sure it saves the current position
+            // XXX This fails if mpv isn't running
             send_mpv_cmd('{ "command": [ "quit" ] }');
             sleep(2);
 
-            shell_exec('sh -c "sleep 3; sudo poweroff" &');
+            // shell_exec('sh -c "sleep 3; sudo poweroff" &');
 
             // Redirect to a page with few images.
             // For some reason, on Android DDG,

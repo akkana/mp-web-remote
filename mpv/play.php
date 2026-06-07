@@ -1,5 +1,6 @@
 <?php
 $filepath = $_GET['file'];
+$pos = $_GET['pos'];
 error_log('will try to play ' . $filepath, 0);
 
 include 'commands.php';
@@ -12,9 +13,15 @@ if (! `pidof mpv` or !file_exists($SOCKETNAME)) {
     //shell_exec('rm -f ' . $SOCKETNAME);
 
     error_log('Starting a new mpv ...', 0);
-    shell_exec('mpv --save-position-on-quit --fs --input-ipc-server='
-             . $SOCKETNAME . ' --volume=50 ' . $filepath
-             . ' </dev/null >/dev/null 2>&1 &');
+    if (! empty($pos))
+        $startpos = ' --start=' . $pos;
+    else
+        $startpos = '';
+    $cmd = 'mpv --fs --input-ipc-server='
+         . $SOCKETNAME . $startpos . ' --volume=50 ' . $filepath
+         . ' </dev/null >/dev/null 2>&1 &';
+    error_log('Trying to run: ' . $cmd, 0);
+    shell_exec($cmd);
 }
 
 else {
