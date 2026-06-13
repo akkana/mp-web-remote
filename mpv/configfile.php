@@ -8,11 +8,9 @@ function read_config()
         $config = parse_ini_file(getenv('HOME') . '/.config//mp-remote.ini');
     else
         $config = array();
-    //echo "Read from config file:";
-    //print_r($config);
 
-    error_log("Read config:");
-    error_log(print_r($config, true));
+    error_log("Read config");
+    //error_log(print_r($config, true));
     return $config;
 }
 
@@ -45,4 +43,18 @@ function write_config($configvars)
     fclose($config);
 }
 
+$posfile = getenv('HOME') . '/.cache/mp-remote/savepos.ini';
+error_log("posfile: $posfile", 0);
 
+function read_position()
+{
+    global $posfile;
+    // Note: try {} doesn't work for parse_ini_file, have to explicitly
+    // check whether the file exists
+    if (file_exists($posfile))
+        return parse_ini_file($posfile);
+    else {
+        error_log("No position file yet", 0);
+        return [];
+    }
+}

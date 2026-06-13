@@ -4,30 +4,55 @@ include 'commands.php';
 include 'configfile.php';
 
 $message = '&nbsp;';
+$filepath = '';
+$curpos = 0;
+
+function save_pos_to_file() {
+    global $posfile;    // comes from configfile.php
+    global $filepath, $curpos;
+    try {
+        if (! empty($filepath)) {
+            $fp = fopen($posfile, 'w');
+
+            fwrite($fp, "filepath = $filepath\n");
+            if (! empty($curpos))
+                fwrite($fp, "position = $curpos\n");
+            error_log("saved to pos file: filepath $filepath, curpos $curpos", 0);
+            send_mpv_cmd('{"command": [ "show-text", "saved current position", 5000 ] }');
+            fclose($fp);
+            return;
+        }
+
+        error_log("No filepath, not saving position");
+
+    } catch (Exception $e) {
+        error_log("Error saving position: $e", 0);
+    }
+    send_mpv_cmd('{"command": [ "show-text", "current position not saved", 5000 ] }');
+}
 
 // The one action this file can do without mpv running is power off
 if (isset($_GET['action']) && $_GET['action'] == 'poweroff') {
-    error_log("controls poweroff", 0);
+    error_log("controls.php poweroff", 0);
 
     // Get and save the current position
-    $filepath = send_mpv_cmd('{ "command": ["get_property", "path"] }');
-    $curpos = send_mpv_cmd('{ "command": ["get_property", "time-pos/full"] }');
+    try {
+        $filepath = send_mpv_cmd('{ "command": ["get_property", "path"] }');
+        if ($filepath && !empty($filepath)) {
+            error_log("Playing filepath " . $filepath, 0);
+            $curpos = send_mpv_cmd('{ "command": ["get_property", "time-pos/full"] }');
+            error_log("Current position: " . $curpos, 0);
 
-    error_log("Trying to save current position before exiting", 0);
-    $config = read_config();
-    if (array_key_exists('mediadir', $config)) {
-        if (! empty($filepath))
-            $config['filepath'] = $filepath;
-        if (! empty($curpos))
-            $config['position'] = $curpos;
-        write_config($config);
+            error_log("Trying to save current status before exiting", 0);
+            save_pos_to_file();
+        } else {
+            error_log("Couldn't get file path currently playing", 0);
+        }
 
-        send_mpv_cmd('{"command": [ "show-text", "saved: '
-                   . print_r($config, true) . '", 5000]  }');
-    } else {
-        send_mpv_cmd('{"command": [ "show-text", "Not saving config, couldn\'t get mediadir", 5000] }');
-        $message .= "Not saving config, couldn't get mediadir";
-        error_log("Not saving config, couldn't get mediadir", 0);
+    } catch (Exception $e) {
+        error_log("Whoops, error getting file and position: " . $e, 0);
+        $filepath = '';
+        $curpos = '';
     }
 
     // Quit mpv, to make sure it saves the current position
@@ -127,15 +152,23 @@ if (isset($_GET['action'])) {
             $message = shell_exec('sh ./mpvstatus.sh');
 
         case 'reallydelete':
-            // sadly, pausing_keep_force doesn't work with get_property filename
             // or path: it doesn't print anything
             $filepath = send_mpv_cmd('{ "command": ["get_property", "path"] }');
             error_log("filepath: " . $filepath);
 
             send_mpv_cmd('{ "command": ["set_property", "pause", true] }');
             $paused = 1;
+
+            // Under some circumstances, changing to another video will
+            // start the new video at the position from the previous,
+            // now deleted, video.
+            // (This happens on Mint but I can't reproduce it on Debian.)
+            // Want new videoes to default to playing from 0, so let's
+            // see if setting the position back to the beginning helps:
+            send_mpv_cmd('{ "command": ["set_property", "percent-pos", 0] }');
+
             send_mpv_cmd('{"command": [ "show-text", "Deleted: '
-                       . basename($filepath) . '", 5000]  }');
+                       . basename($filepath) . '", 8000]  }');
 
             unlink($filepath);
             $message .= 'Deleted ' . $filepath;
@@ -197,7 +230,7 @@ include "header.php";
 
 <tr class="slider positionSlider">
 <td colspan=3">
-    <span class="sliderlabel">Percent played:</span>
+    <span id="posSliderLabel" class="sliderlabel">Percent played:</span>
     <input type="range" id="positionSlider" name="positionSlider"
            min="0" max="100" value="<?php echo $curpos ?>"
            disabled style="width: 75%" />
@@ -289,6 +322,8 @@ include "header.php";
   }
 
   var positionSlider = document.getElementById("positionSlider");
+  // XXX how to pass mm:ss to JS to update the position slider label?
+  //var posSliderLabel = document.getElementById("posSliderLabel");
   positionSlider.onchange = function() {
       // Writing to a file is hard from JS (maybe impossible?)
       // because of security concerns. But it can load a PHP URL
