@@ -14,7 +14,6 @@ table.controls {
     width: 90%; table-layout: fixed;
     td { font-size: 2em; background: #eee; text-align: center; height: 2em; }
     tr.spacer td { background: white !important; font-size: .5em; }
-    tr.slider td { height: 1.15em; line-height: .5em; }
 }
 
 ul.browselist li.file { }
@@ -24,6 +23,10 @@ ul.browselist li.dir { font-style: italic; }
 ul.browselist li.cmd { font-size: .8em; font-style: italic; }
 
 button { border: 0; }
+
+/* To style buttonlike links
+a.button { border: 1px outset black }
+*/
 
 .dialog {
     font-size: 1.2em;
@@ -35,9 +38,23 @@ button { border: 0; }
 
 .farright { float: right; }
 
+/* Sliders have a small sliderlabel element on either side, with the central
+ * slider expanding to take up the rest of the row, implemented in a flexbox.
+ */
+tr.sliderRow {
+    width: 99%;
+    td { height: 1.15em; line-height: .5em; vertical-align: middle; }
+
+    /* The actual flexbox containing the three slider elements */
+    .sliderFlex { display: flex; align-items: center; width: 99%; gap: 8px; }
+
+    /* The two types of components inside the flexbox */
+    .sliderlabel { font-size: .5em; white-space: nowrap; }
+    .slider { flex: 1; }
+}
+
 /* Hide the positionSlider by default, and enable it with JS,
  * since it's misleading when it can't be regularly updated.
  */
 tr.positionSlider { display: none; }
 
-.sliderlabel { font-size: .4em; vertical-align: middle; }

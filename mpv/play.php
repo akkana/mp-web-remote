@@ -14,12 +14,14 @@ if (! `pidof mpv` or !file_exists($SOCKETNAME)) {
     //shell_exec('rm -f ' . $SOCKETNAME);
 
     error_log('Starting a new mpv ...', 0);
-    if (! isset($pos) && $pos)
-        $startpos = ' --start=' . $pos;
-    else
-        $startpos = '';
+    if (isset($pos) && !empty($pos))
+        $startarg = ' --start=' . $pos;
+    else {
+        $startarg = '';
+        error_log("No start argument", 0);
+    }
     $cmd = 'mpv --fs --input-ipc-server='
-         . $SOCKETNAME . $startpos . ' --volume=50 ' . $filepath
+         . $SOCKETNAME . $startarg . ' --volume=50 ' . $filepath
          . ' </dev/null >/dev/null 2>~/.cache/mp-remote/mpv-err.txt &';
     error_log('Trying to run: ' . $cmd, 0);
     shell_exec($cmd);

@@ -58,3 +58,13 @@ function read_position()
         return [];
     }
 }
+
+function hms($seconds)
+{
+    if ($seconds > 3600) {
+        error_log("seconds $seconds is > 3600", 0);
+        return gmdate("H:i:s", $seconds);
+    }
+    error_log("seconds $seconds is NOT greater than 3600", 0);
+    return gmdate("i:s", $seconds);
+}

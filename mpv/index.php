@@ -7,9 +7,11 @@ include "configfile.php";
 try {
     $config = read_config();
 
-    $nowplaying = read_position();
-    if (! empty($nowplaying))
-        error_log("Read position: " . print_r($nowplaying, true), 0);
+    $wasplaying = read_position();
+    if (! empty($wasplaying))
+        error_log("Read position: " . print_r($wasplaying, true), 0);
+    else
+        error_log("No remembered position", 0);
 
     $mediadir = $config['mediadir'];
 
@@ -17,19 +19,26 @@ try {
     // If it already exists, mkdir should return false but not raise an error.
     mkdir(getenv('HOME') . '/.cache/mp-remote');
 
-    if (array_key_exists('filepath', $nowplaying)) {
-        error_log("filepath exists in nowplaying", 0);
-        $encoded = urlencode(trim($nowplaying['filepath']));
-        if (array_key_exists('position', $nowplaying)) {
-            $hms = gmdate("H:i:s", $nowplaying['position']);
-            echo '<p><a href="play.php?file=' . $encoded . '&pos='
-               . $hms . '">Resume '
-               . basename($nowplaying['filepath'])
-               . ' (' . $hms . ")</a>\n";
+    if (array_key_exists('filepath', $wasplaying)) {
+        if (file_exists($wasplaying['filepath'])) {
+            error_log("filepath exists in wasplaying", 0);
+            $encoded = urlencode(trim($wasplaying['filepath']));
+            if (array_key_exists('position', $wasplaying)) {
+                $hms = hms($wasplaying['position']);
+                error_log('Replay url: play.php?file=' . $encoded . '&pos='
+                        . $hms, 0);
+                echo '<p><a href="play.php?file=' . $encoded . '&pos='
+                   . $hms . '">Resume '
+                   . basename($wasplaying['filepath'])
+                   . ' (' . $hms . ")</a>\n";
+            } else {
+                error_log('Was playing ' . $wasplaying['filepath']
+                        . 'but it no longer exists', 0);
+            }
         }
         else {
             echo '<p><a href="play.php?file='
-               . $encoded . '">Resume ' . basename($nowplaying['filepath']). "</a>\n";
+               . $encoded . '">Resume ' . basename($wasplaying['filepath']). "</a>\n";
         }
     }
 

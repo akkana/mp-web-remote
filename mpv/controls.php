@@ -96,6 +96,7 @@ $curvol = send_mpv_cmd('{ "command": ["get_property", "volume"] }\n');
 error_log('Volume ' . $curvol, 0);
 
 $curpos = send_mpv_cmd('{ "command": ["get_property", "percent-pos"] }\n');
+$duration = send_mpv_cmd('{ "command": ["get_property", "duration"] }\n');
 error_log('Percent position ' . $curpos, 0);
 
 if (isset($_GET['action'])) {
@@ -212,40 +213,45 @@ include "header.php";
 
 <table class="controls">
 <tr>
-<td><a href="?action=back">
-    <img src="images/skip-backward.svg"
-         width="64" height=64"" alt="Back"></a></td>
-<td>
-<?php if ($paused): ?>
-    <a href="?action=play">
-    <img src="images/start.svg" width="64" height="64" alt="Play"></a>
-<?php else: ?>
-    <a href="?action=pause">
-    <img src="images/pause.svg" width="64" height="64" alt="Pause"></a>
-<?php endif; ?>
-</td>
-<td><a href="?action=forward">
+  <td><a href="?action=back" class="button">
+      <img src="images/skip-backward.svg"
+           width="64" height="64" alt="Back"></a></td>
+  <td>
+  <?php if ($paused): ?>
+      <a href="?action=play" class="button">
+      <img src="images/start.svg" width="64" height="64" alt="Play"></a>
+  <?php else: ?>
+      <a href="?action=pause" class="button">
+      <img src="images/pause.svg" width="64" height="64" alt="Pause"></a>
+  <?php endif; ?>
+  </td>
+  <td><a href="?action=forward" class="button">
     <img src="images/skip-forward.svg" width="64" height="64" alt="Forward"></a>
 </tr>
 
-<tr class="slider positionSlider">
-<td colspan=3">
-    <span id="posSliderLabel" class="sliderlabel">Percent played:</span>
-    <input type="range" id="positionSlider" name="positionSlider"
-           min="0" max="100" value="<?php echo $curpos ?>"
-           disabled style="width: 75%" />
+<tr class="sliderRow" id="positionSliderRow" style="display: none">
+  <td colspan="3">
+    <div class="sliderFlex">
+      <span class="sliderlabel" id="posSliderLabel">Played:</span>
+      <input type="range" id="positionSlider" class="slider"
+             name="positionSlider" min="0" max="100"
+             value="<?php echo $curpos ?>" />
+      <span id="totTime" class="sliderlabel"><?php echo hms($duration); ?></span>
+    </div>
+  </td>
+</tr>
 
 <tr class="spacer"><td colspan=3">&nbsp;
 
 <tr>
-<td><a href="?action=volumedown">
+<td><a href="?action=volumedown" class="button">
     <img src="images/volume-down.svg"
          width="64" height="64" alt="Volume down"></a></td>
 
 <td><button id="deleteButton" command="show-modal" commandfor="delete-dialog">
-    <img src="images/trash.svg" width="64" height="64" alt="Delete">
+    <img src="images/trash.svg" width="64" height="64" alt="Delete" class="button">
 
-<td><a href="?action=volumeup">
+<td><a href="?action=volumeup" class="button">
     <img src="images/volume-up.svg"
          width="64" height="64" alt="Volume down"></a></td>
 </button>
@@ -322,6 +328,7 @@ include "header.php";
   }
 
   var positionSlider = document.getElementById("positionSlider");
+  var timePos = document.getElementById("posSliderLabel");
   // XXX how to pass mm:ss to JS to update the position slider label?
   //var posSliderLabel = document.getElementById("posSliderLabel");
   positionSlider.onchange = function() {
@@ -348,11 +355,16 @@ include "header.php";
       var xhr = new XMLHttpRequest();
       xhr.onreadystatechange = function(e) {
           if (xhr.readyState == 4 && xhr.status == 200) {
-              var pos = parseInt(xhr.responseText);
-              positionSlider.value = pos;
+              var poses = xhr.responseText.split(',');
+              positionSlider.value = parseInt(poses[0]);
+              var hms = new Date(parseFloat(poses[1]) * 1000)
+                  .toISOString().substring(11, 19)
+              if (hms.startsWith('00:'))
+                  hms = hms.substring(3);
+              timePos.innerHTML = hms;
           }
       };
-      xhr.open("GET", "simplecommands.php?property=percent-pos", true);
+      xhr.open("GET", "simplecommands.php?property=percent-pos,time-pos", true);
       xhr.send();
   }
 
@@ -361,9 +373,8 @@ include "header.php";
   volumeSlider.disabled = false;
   positionSlider.disabled = false;
   // Set the containing tr, the slider's grandparent, to visible
-  positionSlider.parentElement.parentElement.style.display = 'table-row';
-  //alert("set positionSlider.parentElement.parentElement.display to table-row:"
-  //      + positionSlider.parentElement.parentElement.display);
+  var positionSliderRow = document.getElementById("positionSliderRow");
+  positionSliderRow.style.display = 'table-row';
 
   // Update the position slider regularly, so it keeps track as
   // the video plays. Not so important for the volume slider since

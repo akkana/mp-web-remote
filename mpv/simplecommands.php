@@ -19,6 +19,7 @@ if (isset($_GET['cmd'])) {
         send_mpv_cmd('{ "command": ["' . $_GET['cmd'] . '" ] }');
 }
 else if (isset($_GET['property'])) {
+    // property can have multiple values, e.g. ?property=time-pos,percent-pos
 
     if (isset($_GET['val'])) {
         error_log('cmd = ' . $_GET['property'] . ' and val = ' . $_GET['val'], 0);
@@ -28,9 +29,18 @@ else if (isset($_GET['property'])) {
         echo 'Set ' . $_GET['property'] . ' &rarr; ' . $_GET['val'];
     } else {
         error_log('cmd = ' . $_GET['property'], 0);
-        $val = send_mpv_cmd('{ "command": ["get_property", "'
-                          . $_GET['property'] . '" ] }');
-        echo $val;
+        $props = explode(',', $_GET['property']);
+        $retval = '';
+        foreach ($props as $prop) {
+            $val = send_mpv_cmd('{ "command": ["get_property", "'
+                              . $prop . '" ] }');
+            if (! empty($val)) {
+                if (! empty($retval))
+                    $retval .= ',';
+                $retval .= $val;
+            }
+        }
+        echo $retval;
     }
 }
 ?>
