@@ -25,10 +25,14 @@ try {
             $encoded = urlencode(trim($wasplaying['filepath']));
             if (array_key_exists('position', $wasplaying)) {
                 $hms = hms($wasplaying['position']);
+                if (array_key_exists('volume', $wasplaying))
+                    $volume = $wasplaying['volume'];
+                else
+                    $volume = 50;
                 error_log('Replay url: play.php?file=' . $encoded . '&pos='
                         . $hms, 0);
                 echo '<p><a href="play.php?file=' . $encoded . '&pos='
-                   . $hms . '">Resume '
+                   . $hms . '&volume=' . $volume . '">Resume '
                    . basename($wasplaying['filepath'])
                    . ' (' . $hms . ")</a>\n";
             } else {

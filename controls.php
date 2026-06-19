@@ -1,24 +1,26 @@
 <?php
 
-include 'commands.php';
+include 'mpvcommands.php';
 include 'configfile.php';
 
 $message = '&nbsp;';
-$filepath = '';
-$curpos = 0;
 
 function save_pos_to_file() {
     global $posfile;    // comes from configfile.php
-    global $filepath, $curpos;
     try {
+        $filepath = get_prop("path");
         if (! empty($filepath)) {
             $fp = fopen($posfile, 'w');
 
             fwrite($fp, "filepath = $filepath\n");
+            $curpos = get_prop("time-pos/full");
             if (! empty($curpos))
                 fwrite($fp, "position = $curpos\n");
+            $volume = get_prop("volume");
+            if (! empty($volume))
+                fwrite($fp, "volume = $volume\n");
             error_log("saved to pos file: filepath $filepath, curpos $curpos", 0);
-            send_mpv_cmd('{"command": [ "show-text", "saved current position", 5000 ] }');
+            run_command("show-text", "saved current position", 5000);
             fclose($fp);
             return;
         }
@@ -34,37 +36,7 @@ function save_pos_to_file() {
 // The one action this file can do without mpv running is power off
 if (isset($_GET['action']) && $_GET['action'] == 'poweroff') {
     error_log("controls.php poweroff", 0);
-
-    // Get and save the current position
-    try {
-        $filepath = send_mpv_cmd('{ "command": ["get_property", "path"] }');
-        if ($filepath && !empty($filepath)) {
-            error_log("Playing filepath " . $filepath, 0);
-            $curpos = send_mpv_cmd('{ "command": ["get_property", "time-pos/full"] }');
-            error_log("Current position: " . $curpos, 0);
-
-            error_log("Trying to save current status before exiting", 0);
-            save_pos_to_file();
-        } else {
-            error_log("Couldn't get file path currently playing", 0);
-        }
-
-    } catch (Exception $e) {
-        error_log("Whoops, error getting file and position: " . $e, 0);
-        $filepath = '';
-        $curpos = '';
-    }
-
-    // Quit mpv, to make sure it saves the current position
-    // This fails if mpv isn't running, so enclose in a try.
-    try {
-        send_mpv_cmd('{ "command": [ "quit" ] }');
-        sleep(2);
-    } catch (Exception $e) {
-        error_log("quit didn't work, probably mpv isn't running");
-    }
-
-    shell_exec('sh -c "sleep 3; sudo poweroff" &');
+    run_command('poweroff');
 
     // Redirect to a page with few images.
     // For some reason, on Android DDG,
@@ -78,70 +50,69 @@ if (isset($_GET['action']) && $_GET['action'] == 'poweroff') {
     return;
 }
 
-if (! `pidof mpv`) {
+if (! player_is_running()) {
     header('Location: index.php');
     exit();
 }
 
 # Get paused state, since this affects lots of other things,
 # like which commands might unwantedly un-pause.
-$paused = send_mpv_cmd('{ "command": ["get_property", "pause"] }\n');
+$paused = get_prop("pause");
 error_log("paused status: " . print_r($paused, true), 0);
 if ($paused)
     error_log('Paused', 0);
 else
     error_log('NOT Paused', 0);
 
-$curvol = send_mpv_cmd('{ "command": ["get_property", "volume"] }\n');
+$curvol = get_prop("volume");
 error_log('Volume ' . $curvol, 0);
 
-$curpos = send_mpv_cmd('{ "command": ["get_property", "percent-pos"] }\n');
-$duration = send_mpv_cmd('{ "command": ["get_property", "duration"] }\n');
+$curpos = get_prop("percent-pos");
+$duration = get_prop("duration");
 error_log('Percent position ' . $curpos, 0);
 
 if (isset($_GET['action'])) {
     error_log("action: " . $_GET['action'], 0);
     switch ($_GET['action']) {
         case 'pause':
-            send_mpv_cmd('{ "command": ["set_property", "pause", true] }');
+            error_log('pausing', 0);
+            set_prop("pause", "true");
             $paused = 1;
             break;
 
         case 'play':
-            send_mpv_cmd('{ "command": ["set_property", "pause", false] }');
+            set_prop("pause", "false");
             $paused = 0;
             break;
 
         case 'back':
-            send_mpv_cmd('{ "command": [ "seek", "-10" ] }');
+            run_command("seek", "-10");
             break;
 
         case 'forward':
-            send_mpv_cmd('{ "command": [ "seek", "+10" ] }');
+            run_command("seek", "+10");
             break;
 
         case 'mute':
-            send_mpv_cmd('{ "command": ["set_property", "mute", true] }');
+            set_prop("mute", true);
             break;
 
         case 'unmute':
-            send_mpv_cmd('{ "command": ["set_property", "mute", false] }');
+            set_prop("mute", false);
             break;
 
         case 'volumeup':
             $curvol += 5;
             if ($curvol > 100)
                 $curvol = 100;
-            send_mpv_cmd('{ "command": ["set_property", "volume", '
-                       . $curvol . '] }');
+            set_prop("volume", $curvol);
             break;
 
         case 'volumedown':
             $curvol -= 5;
             if ($curvol < 0)
                 $curvol = 0;
-            send_mpv_cmd('{ "command": ["set_property", "volume", '
-                       . $curvol . '] }');
+            set_prop("volume", $curvol);
             break;
 
         case 'aspect':
@@ -149,15 +120,12 @@ if (isset($_GET['action'])) {
             $message .= "Sorry, don't know how to change aspect ratio yet";
             break;
 
-        case 'status':
-            $message = shell_exec('sh ./mpvstatus.sh');
-
         case 'reallydelete':
             // or path: it doesn't print anything
-            $filepath = send_mpv_cmd('{ "command": ["get_property", "path"] }');
+            $filepath = get_prop("path");
             error_log("filepath: " . $filepath);
 
-            send_mpv_cmd('{ "command": ["set_property", "pause", true] }');
+            set_prop("pause", true);
             $paused = 1;
 
             // Under some circumstances, changing to another video will
@@ -166,10 +134,10 @@ if (isset($_GET['action'])) {
             // (This happens on Mint but I can't reproduce it on Debian.)
             // Want new videoes to default to playing from 0, so let's
             // see if setting the position back to the beginning helps:
-            send_mpv_cmd('{ "command": ["set_property", "percent-pos", 0] }');
+            set_prop("percent-pos", 0);
 
-            send_mpv_cmd('{"command": [ "show-text", "Deleted: '
-                       . basename($filepath) . '", 8000]  }');
+            run_command("show-text", "Deleted: '
+                       . basename($filepath) . '", 8000);
 
             unlink($filepath);
             $message .= 'Deleted ' . $filepath;

@@ -2,14 +2,14 @@
 
 $viddir = '/' . trim($_GET['dir'], '/');
 
-include 'commands.php';
+include 'mpvcommands.php';
 include 'configfile.php';
 
 $message = '';
 
 // Find out what's currently playing, if anything
 try {
-    $filename = send_mpv_cmd('{ "command": ["get_property", "path"] }\n');
+    $filename = get_prop("path");
     $filename = basename($filename);
 } catch (Exception $e) {
     $filename = null;
@@ -26,7 +26,7 @@ if (! $viddir) {
 
 function delTree($dir)
 {
-    $files = array_diff(scandir($dir), array('.','..'));
+    $files = array_diff(scandir($dir), array('.', '..'));
     foreach ($files as $file) {
         (is_dir("$dir/$file")) ? delTree("$dir/$file") : unlink("$dir/$file");
     }

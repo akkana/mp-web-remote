@@ -4,7 +4,7 @@
 // simplecommands.php?cmd=foo
 // simplecommands.php?property=foo&val=bar
 
-include 'commands.php';
+include 'mpvcommands.php';
 
 if (isset($_GET['cmd'])) {
     if ($_GET['cmd'] == 'poweroff') {
@@ -22,18 +22,16 @@ else if (isset($_GET['property'])) {
     // property can have multiple values, e.g. ?property=time-pos,percent-pos
 
     if (isset($_GET['val'])) {
+        // Doesn't (yet?) support setting multiple props at once
         error_log('cmd = ' . $_GET['property'] . ' and val = ' . $_GET['val'], 0);
-        send_mpv_cmd('{ "command": ["set_property", "' . $_GET['property']
-                   . '", '
-                   . $_GET['val'] . '] }');
+        set_prop($_GET['property'], $_GET['val']);
         echo 'Set ' . $_GET['property'] . ' &rarr; ' . $_GET['val'];
     } else {
         error_log('cmd = ' . $_GET['property'], 0);
         $props = explode(',', $_GET['property']);
         $retval = '';
         foreach ($props as $prop) {
-            $val = send_mpv_cmd('{ "command": ["get_property", "'
-                              . $prop . '" ] }');
+            $val = get_prop($prop);
             if (! empty($val)) {
                 if (! empty($retval))
                     $retval .= ',';
