@@ -7,7 +7,7 @@ else
 if (isset($_GET['volume']))
     $volume = $_GET['volume'];
 else
-    $volume = 50;
+    $volume = null;
 error_log('will try to play ' . $filepath . ' from ' . $pos
         . ' with volume ' . $volume, 0);
 
@@ -19,13 +19,15 @@ if (! player_is_running()) {
 
 else {
     // mpv is already running; tell it to load the new file and unpause.
-    run_command('load', $filepath);
-    set_prop('pause', false);
+    run_command('loadfile', $filepath);
+    sleep(3);
+    set_prop('pause', "false");
 }
 
 sleep(2);
 
-set_prop('volume', $volume);
+if ($volume)
+    set_prop('volume', $volume);
 
 error_log("Showing controls", 0);
 //header('HTTP/1.0 302 Temp');

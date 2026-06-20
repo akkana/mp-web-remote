@@ -2,24 +2,35 @@
 
 $SOCKETNAME = '/tmp/mpvsocket';
 
+function quote_arg_if_needed($arg) {
+    // Don't quote arg if it's a number, or the string true or false.
+    // PHP doesn't seem to be good at handling  false as an
+    // object distinct from '' or null, so it's safest to pass
+    // it as a string.
+    // mpv wants unquoted strings true/false for arguments.
+    if (is_null($arg))
+        return null;
+    if (is_numeric($arg) || $arg == 'true' || $arg == 'false')
+        return $arg;
+    if ($arg == '') {
+        // error_log("arg is an empty string", 0);
+        return '""';
+    }
+    return '"' . $arg . '"';
+}
+
 function send_mpv_cmd($cmd, $arg1=null, $arg2=null)
 {
     global $SOCKETNAME;
-    error_log('send_mpv_cmd ' . $cmd . ', ' . $arg1 . ', ' . $arg2, 0);
-    if ($arg1 && $arg2) {
-        // Don't quote arg2 if it's a number, or the string true or false.
-        // PHP doesn't seem to be good at handling  false as an
-        // object distinct from '' or null, so it's safest to pass
-        // it as a string.
-        // mpv wants unquoted strings true/false for arguments.
-        if (! is_numeric($arg2) && $arg2 != 'true' && $arg2 != 'false')
-            $arg2 = '"' . $arg2 . '"';
 
-        $mpvcmd = '{ "command": [ "' . $cmd . '", "' . $arg1
-                . '", ' . $arg2 . ' ] }';
-    }
+    error_log('send_mpv_cmd ' . $cmd . ', ' . $arg1 . ', ' . $arg2, 0);
+    $arg1 = quote_arg_if_needed($arg1);
+    $arg2 = quote_arg_if_needed($arg2);
+    if ($arg1 && ! is_null($arg2))
+        $mpvcmd = '{ "command": [ "' . $cmd . '", ' . $arg1
+                . ', ' . $arg2 . ' ] }';
     else if ($arg1)
-        $mpvcmd = '{ "command": [ "' . $cmd . '", "' . $arg1 . '" ] }';
+        $mpvcmd = '{ "command": [ "' . $cmd . '", ' . $arg1 . ' ] }';
     else
         $mpvcmd = '{ "command": [ "' . $cmd . '" ] }';
 
@@ -36,13 +47,6 @@ function send_mpv_cmd($cmd, $arg1=null, $arg2=null)
     return null;
 }
 
-$commands = array(
-    "quit" => "quit",
-    'seek' => 'seek',
-    'load' => 'loadfile',
-    'show-text' => 'show-text',
-);
-
 function get_prop($prop) {
     error_log("get_prop '$prop'", 0);
     return send_mpv_cmd('get_property', $prop);
@@ -54,8 +58,6 @@ function set_prop($prop, $val) {
 }
 
 function run_command($cmd, $arg=null) {
-    global $commands;
-
     error_log('run_command ' . $cmd . ', ' . $arg, 0);
     switch($cmd) {
         case 'poweroff':
@@ -89,6 +91,49 @@ function start_player($filepath, $pos) {
          . ' </dev/null >~/.cache/mp-remote/mpv-err.txt 2&>1 &';
     error_log('Trying to run: ' . $cmd, 0);
     shell_exec($cmd);
+}
+
+function delete_current_file()
+{
+    $filepath = get_prop("path");
+    if (! $filepath) {
+        error_log("Eek! Can't delete null file", 0);
+        return;
+    }
+    error_log("delete filepath: " . $filepath);
+
+    set_prop("pause", true);
+
+    // Under some circumstances, changing to another video will
+    // start the new video at the position from the previous,
+    // now deleted, video.
+    // (This happens on Mint but I can't reproduce it on Debian.)
+    // Want new videoes to default to playing from 0, so let's
+    // see if setting the position back to the beginning helps:
+    set_prop("percent-pos", 0);
+
+    run_command("show-text", "Deleted: " . basename($filepath), 5000);
+    sleep(5);
+    // loadfile '' will close the player window.
+    // I haven't found any way to just make the window black.
+    // XXX Maybe we should load a nice jpeg?
+    run_command('loadfile', '');
+
+    unlink($filepath);
+    // $message .= 'Deleted ' . $filepath;
+    error_log("Deleted: $filepath", 0);
+
+    // If dir is empty, rmdir it
+    $dir = dirname($filepath);
+    if (count(scandir($dir)) <= 2) {
+        error_log("Removing now-empty directory " . $dir, 0);
+        rmdir($dir);
+        sleep(1);
+        $dir = dirname($dir);
+        error_log("going to" . $dir, 0);
+        header('Location: browse.php?dir=' . urlencode($dir));
+        return;
+    }
 }
 
 function poweroff()

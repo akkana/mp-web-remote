@@ -1,6 +1,8 @@
 <?php
 
 $viddir = '/' . trim($_GET['dir'], '/');
+if (! $viddir)
+    header('Location: .');
 
 include 'mpvcommands.php';
 include 'configfile.php';
@@ -9,9 +11,11 @@ $message = '';
 
 // Find out what's currently playing, if anything
 try {
-    $filename = get_prop("path");
-    $filename = basename($filename);
+    $filepath = get_prop("path");
+    $filename = basename($filepath);
+    error_log("Currently playing $filename");
 } catch (Exception $e) {
+    $filepath = null;
     $filename = null;
 }
 
@@ -51,6 +55,11 @@ if (isset($_GET['cmd']) && $_GET['cmd'] == 'deletedir') {
     }
 }
 
+if (player_is_running() && $filename) {
+    // error_log("filename is: " . $filename, 0);
+    echo "<p><a href='controls.php'>Continue playing $filename</a>";
+}
+
 $files = array();
 $dirs = array();
 
@@ -73,7 +82,7 @@ array_pop($p);
 $s = urlencode(implode('/', $p));
 echo "<li class='cmd'><a href=\"browse.php?dir={$s}\">Up One Level</a><br />";
 
-echo "<li class='cmd'><a href=\"index.php\">Main Menu</a>";
+echo "<li class='cmd'><a href=\".\">Main Menu</a>";
 
 foreach ($dirs as $d) {
     $bn = basename($d);

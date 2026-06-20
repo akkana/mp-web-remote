@@ -36,9 +36,9 @@ run the remote control as:
 ```
     php -S localhost:8000
 ```
-to test locally, or
+to test locally (change the port to whatever you prefer), or
 ```
-    php -S [hostname-or-IP-addr]:8000
+    php -S 0.0.0.0:8000
 ```
 if you want it accessible to other machines, like if you want to use
 your phone as a remote control.

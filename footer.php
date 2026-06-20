@@ -13,7 +13,7 @@
 </dialog>
 
 <hr>
-<a href="index.php"><img src="images/browse.svg"
+<a href="."><img src="images/browse.svg"
          width="48" height="48" alt="Browse"></a>
 
 <button id="offButton" command="show-modal" commandfor="poweroff-dialog"

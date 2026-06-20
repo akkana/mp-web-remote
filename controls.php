@@ -45,14 +45,13 @@ if (isset($_GET['action']) && $_GET['action'] == 'poweroff') {
     // However, this doesn't work; it gets a 404
     // even though the shutdown shouldn't happen until
     // well after the page is loaded.
-    header("Location: index.php");
-
+    header("Location: .");
     return;
 }
 
 if (! player_is_running()) {
-    header('Location: index.php');
-    exit();
+    header('Location: .');
+    return;
 }
 
 # Get paused state, since this affects lots of other things,
@@ -70,6 +69,9 @@ error_log('Volume ' . $curvol, 0);
 $curpos = get_prop("percent-pos");
 $duration = get_prop("duration");
 error_log('Percent position ' . $curpos, 0);
+
+$filepath = get_prop("path");
+$filename = basename($filepath);
 
 if (isset($_GET['action'])) {
     error_log("action: " . $_GET['action'], 0);
@@ -121,41 +123,21 @@ if (isset($_GET['action'])) {
             break;
 
         case 'reallydelete':
-            // or path: it doesn't print anything
-            $filepath = get_prop("path");
-            error_log("filepath: " . $filepath);
-
-            set_prop("pause", true);
-            $paused = 1;
-
-            // Under some circumstances, changing to another video will
-            // start the new video at the position from the previous,
-            // now deleted, video.
-            // (This happens on Mint but I can't reproduce it on Debian.)
-            // Want new videoes to default to playing from 0, so let's
-            // see if setting the position back to the beginning helps:
-            set_prop("percent-pos", 0);
-
-            run_command("show-text", "Deleted: '
-                       . basename($filepath) . '", 8000);
-
-            unlink($filepath);
-            $message .= 'Deleted ' . $filepath;
-            $encoded = urlencode(dirname("$filepath"));
-
-            // If dir is empty, rmdir it
-            $dir = dirname($filepath);
-            if (count(scandir($dir)) <= 2) {
-                error_log("Removing now-empty directory " . $dir, 0);
-                rmdir($dir);
-                sleep(1);
-                error_log("going to" . dirname($dir), 0);
-                header('Location: browse.php?dir=' . urlencode(dirname($dir)));
-                return;
-            }
-
+            // XXX It would be nice to show some indication here that something
+            // is happening, but I'm not sure how. The previous page,
+            // where the user tapped on the Yes button for Really Delete,
+            // is still showing, and giving some JS action there, like an
+            // alert, doesn't do anything visible.
+            // But this page isn't visible yet either. Sigh.
+            delete_current_file();
             sleep(1);
-            header('Location: browse.php?dir=' . urlencode($dir));
+            $dir = dirname($filepath);
+            if (! file_exists($dir))
+                $dir = dirname($dir);
+            if ($dir && $dir != '/')
+                header('Location: browse.php?dir=' . urlencode($dir));
+            else
+                header('.');
             break;
     }
 }
@@ -242,6 +224,11 @@ include "header.php";
 
 </table>
 
+<?php if ($filename)
+echo "<p>";
+echo "Playing: $filename";
+?>
+
 <div id="status">
 <?php echo $message; ?>
 </div>
@@ -264,6 +251,9 @@ include "header.php";
  btn.command = null;
  btn.commandfor = null;
  btn.onclick = function(e) {
+     // Would be nice to show some indication that the user has confirmed,
+     // but putting an alert here makes no visible difference
+     // (see earlier comment under action="reallydelete").
      window.location.href = "controls.php?action=reallydelete";
  };
  btn = document.getElementById("dontdeletebtn");
