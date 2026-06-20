@@ -130,7 +130,6 @@ if (isset($_GET['action'])) {
             // alert, doesn't do anything visible.
             // But this page isn't visible yet either. Sigh.
             delete_current_file();
-            sleep(1);
             $dir = dirname($filepath);
             if (! file_exists($dir))
                 $dir = dirname($dir);

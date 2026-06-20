@@ -102,22 +102,26 @@ function delete_current_file()
     }
     error_log("delete filepath: " . $filepath);
 
-    set_prop("pause", true);
-
     // Under some circumstances, changing to another video will
     // start the new video at the position from the previous,
     // now deleted, video.
     // (This happens on Mint but I can't reproduce it on Debian.)
     // Want new videoes to default to playing from 0, so let's
     // see if setting the position back to the beginning helps:
+    set_prop("pause", true);
     set_prop("percent-pos", 0);
+    // Sometimes it seems to start playing again before being replaced, so
+    set_prop("pause", true);
 
-    run_command("show-text", "Deleted: " . basename($filepath), 5000);
-    sleep(5);
     // loadfile '' will close the player window.
-    // I haven't found any way to just make the window black.
-    // XXX Maybe we should load a nice jpeg?
-    run_command('loadfile', '');
+    // So load a jpeg instead.
+    //run_command('loadfile', '');
+    set_prop('image-display-duration', 'inf');
+    run_command('loadfile', getcwd() . '/images/tux-filmstrip.jpg');
+
+    // XXX Sadly, show-text ignores the time (supposed to be milliseconds);
+    // the message disappears in a second or less.
+    run_command("show-text", "Deleted: " . basename($filepath), 10000);
 
     unlink($filepath);
     // $message .= 'Deleted ' . $filepath;
