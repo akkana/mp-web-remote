@@ -10,12 +10,15 @@ function quote_arg_if_needed($arg) {
     // mpv wants unquoted strings true/false for arguments.
     if (is_null($arg))
         return null;
-    if (is_numeric($arg) || $arg == 'true' || $arg == 'false')
-        return $arg;
     if ($arg == '') {
         // error_log("arg is an empty string", 0);
         return '""';
     }
+    // MPV requires quoting for +10, but not for -10
+    if (str_starts_with($arg, '+'))
+        return '"' . $arg . '"';
+    if (is_numeric($arg) || $arg == 'true' || $arg == 'false')
+        return $arg;
     return '"' . $arg . '"';
 }
 

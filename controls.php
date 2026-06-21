@@ -33,6 +33,9 @@ function save_pos_to_file() {
     send_mpv_cmd('{"command": [ "show-text", "current position not saved", 5000 ] }');
 }
 
+if (isset($_GET['action']))
+    error_log("Action: " . $_GET['action'], 0);
+
 // The one action this file can do without mpv running is power off
 if (isset($_GET['action']) && $_GET['action'] == 'poweroff') {
     error_log("controls.php poweroff", 0);
@@ -315,7 +318,7 @@ echo "Playing: $filename";
               var poses = xhr.responseText.split(',');
               positionSlider.value = parseInt(poses[0]);
               var hms = new Date(parseFloat(poses[1]) * 1000)
-                  .toISOString().substring(11, 19)
+                  .toISOString().substring(11, 19);
               if (hms.startsWith('00:'))
                   hms = hms.substring(3);
               timePos.innerHTML = hms;
