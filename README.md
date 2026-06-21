@@ -48,3 +48,8 @@ I don't suggest you run this on a public server, for (hopefully) obvious reasons
 When shutting down, it tries to remember the file, position in the
 file, and volume setting you were last using, so you can continue from
 there when you start your next viewing session.
+
+Image credits for components of the logo shown when videos are deleted:
+- [Tux the Linux Penguin by Larry Ewing](https://en.wikipedia.org/wiki/Tux_(mascot))
+- [Blue universe by Felix Mittermeier](https://commons.wikimedia.org/wiki/File:Blue-universe-956981.jpg)
+- [Wannapic Filmmaking and Video Production Filmstrip](https://www.wannapik.com/vectors/2451)
