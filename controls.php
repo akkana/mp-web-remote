@@ -9,7 +9,9 @@ function save_pos_to_file() {
     global $posfile;    // comes from configfile.php
     try {
         $filepath = get_prop("path");
-        if (! empty($filepath)) {
+        if (! empty($filepath)
+            && is_video($filepath) && file_exists($filepath))
+        {
             $fp = fopen($posfile, 'w');
 
             fwrite($fp, "filepath = $filepath\n");

@@ -68,3 +68,10 @@ function hms($seconds)
     error_log("seconds $seconds is NOT greater than 3600", 0);
     return gmdate("i:s", $seconds);
 }
+
+// Don't show the static logo image as a play option.
+// Alternately it might be better to check for a list of video file extensions.
+function is_video($filename)
+{
+    return ! str_ends_with($filename, 'tux-filmstrip.jpg');
+}

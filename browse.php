@@ -7,6 +7,18 @@ if (! $viddir)
 include 'mpvcommands.php';
 include 'configfile.php';
 
+include "header.php";
+
+$config = read_config();
+
+// Don't allow browsing above the mediadir
+if (! str_contains($viddir, $config['mediadir'])) {
+    echo "<p>Can't browse above media dir";
+    echo "<p><a href=\".\">Home</a></p>";
+    require 'footer.php';
+    return;
+}
+
 $message = '';
 
 // Find out what's currently playing, if anything
@@ -20,8 +32,6 @@ try {
 }
 
 $title = basename($viddir) . ' (MPV Remote)';
-
-include "header.php";
 
 if (! $viddir) {
     echo "Nothing found";
@@ -40,7 +50,6 @@ function delTree($dir)
 if (isset($_GET['cmd']) && $_GET['cmd'] == 'deletedir') {
     // Check to make sure it's under the media dir,
     // so this can't be used to delete higher-up directories
-    $config = read_config();
     if (str_contains($viddir, $config['mediadir'])) {
         error_log("Deleting " . $viddir);
         delTree($viddir);
@@ -55,7 +64,7 @@ if (isset($_GET['cmd']) && $_GET['cmd'] == 'deletedir') {
     }
 }
 
-if (player_is_running() && $filename) {
+if (player_is_running() && $filename && is_video($filename)) {
     // error_log("filename is: " . $filename, 0);
     echo "<p><a href='controls.php'>Continue playing $filename</a>";
 }
@@ -77,15 +86,25 @@ asort($dirs);
 
 echo '<ul class="browselist">';
 
-$p = explode('/', $viddir);
-array_pop($p);
-$s = urlencode(implode('/', $p));
-echo "<li class='cmd'><a href=\"browse.php?dir={$s}\">Up One Level</a><br />";
+// Link to the parent directory
+// XXX compare against $config['mediadir'] and don't show "Up One Level"
+// XXX if it would go above the mediadir.
+$parent = dirname($viddir);
+$parentenc = urlencode($parent);
+error_log("s is $parent, mediadir is " . $config['mediadir'], 0);
 
-echo "<li class='cmd'><a href=\".\">Main Menu</a>";
+if ($parent != $config['mediadir']) {
+  if (str_contains($parent, $config['mediadir']))
+    echo "<li class='cmd'><a href=\"browse.php?dir={$parentenc}\">Up One Level</a>";
+
+}
+else
+    echo "<li class='cmd'><a href=\".\">Home</a>";
 
 foreach ($dirs as $d) {
     $bn = basename($d);
+    if ($bn == 'lost+found')
+        continue;
     $encoded = urlencode(trim("$d"));
     echo "<li class='dir'><a href=\"browse.php?dir={$encoded}\">{$bn}</a>";
 }
