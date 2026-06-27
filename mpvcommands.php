@@ -90,7 +90,7 @@ function start_player($filepath, $pos) {
         error_log("No start argument", 0);
     }
     $cmd = 'mpv --fs --input-ipc-server='
-         . $SOCKETNAME . $startarg . ' --volume=50 ' . $filepath
+         . $SOCKETNAME . $startarg . ' ' . $filepath
          . ' </dev/null >~/.cache/mp-remote/mpv-err.txt 2>&1 &';
     error_log('Trying to run: ' . $cmd, 0);
     shell_exec($cmd);

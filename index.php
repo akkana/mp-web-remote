@@ -10,10 +10,12 @@ try {
     $config = read_config();
 
     $wasplaying = read_position();
+    /*
     if (! empty($wasplaying))
         error_log("Read position: " . print_r($wasplaying, true), 0);
     else
         error_log("No remembered position", 0);
+    */
 
     $mediadir = $config['mediadir'];
 

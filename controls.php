@@ -38,19 +38,48 @@ function save_pos_to_file() {
 if (isset($_GET['action']))
     error_log("Action: " . $_GET['action'], 0);
 
+function baseurl(){
+    if(isset($_SERVER['HTTPS']))
+        $returl = ($_SERVER['HTTPS'] && $_SERVER['HTTPS'] != "off")
+                    ? "https" : "http";
+    else
+        $returl = 'http';
+
+    error_log("host: " . $_SERVER['HTTP_HOST']);
+    $returl .= "://" . $_SERVER['HTTP_HOST'];
+
+    /* $_SERVER['HTTP_HOST'] already includes the port,
+     * despite pages that suggest otherwise
+    if ($_SERVER["SERVER_PORT"] != "80")
+        $returl .= ":" . $_SERVER["SERVER_PORT"];
+     */
+
+    error_log("base url: " . $returl, 0);
+    return $returl . '/';
+}
+
 // The one action this file can do without mpv running is power off
 if (isset($_GET['action']) && $_GET['action'] == 'poweroff') {
     error_log("controls.php poweroff", 0);
-    run_command('poweroff');
 
-    // Redirect to a page with few images.
-    // For some reason, on Android DDG,
-    // images disappear after the host shuts down
-    // but the rest of the page still displays fine.
-    // However, this doesn't work; it gets a 404
-    // even though the shutdown shouldn't happen until
-    // well after the page is loaded.
-    header("Location: .");
+
+    header("Content-Type: text/html; charset=utf-8");
+    //header("Content-Length: " . strlen($html));
+    header("Connection: close");
+
+    include "header.php";
+    echo "<p>Shutting down!";
+    echo '<p><a href="' . baseurl() . '">MP Web Remote</a>';
+    include "footer.php";
+
+    // Force the response out to the client now
+    if (ob_get_level() > 0)
+        ob_flush();
+    flush();
+
+    sleep(2);
+    poweroff();
+
     return;
 }
 
