@@ -22,18 +22,27 @@ function quote_arg_if_needed($arg) {
     return '"' . $arg . '"';
 }
 
-function send_mpv_cmd($cmd, $arg1=null, $arg2=null)
+/* arg1 is a string or int, or null.
+ * otherargs can be the same, or an array of same.
+ */
+function send_mpv_cmd($cmd, $args=null)
 {
     global $SOCKETNAME;
 
-    error_log('send_mpv_cmd ' . $cmd . ', ' . $arg1 . ', ' . $arg2, 0);
-    $arg1 = quote_arg_if_needed($arg1);
-    $arg2 = quote_arg_if_needed($arg2);
-    if ($arg1 && ! is_null($arg2))
-        $mpvcmd = '{ "command": [ "' . $cmd . '", ' . $arg1
-                . ', ' . $arg2 . ' ] }';
-    else if ($arg1)
-        $mpvcmd = '{ "command": [ "' . $cmd . '", ' . $arg1 . ' ] }';
+    error_log('send_mpv_cmd ' . $cmd . ', ' . json_encode($args), 0);
+
+    $mpvcmd = '{ "command": [ "' . $cmd . '"';
+
+    if ($args) {
+        if (is_array($args)) {
+            foreach ($args as $arg) {
+                $mpvcmd .= ', ' . quote_arg_if_needed($arg);
+            }
+        }
+        else if (! is_null($args))
+            $mpvcmd .= ', ' . quote_arg_if_needed($args);
+        $mpvcmd .= ' ] }';
+    }
     else
         $mpvcmd = '{ "command": [ "' . $cmd . '" ] }';
 
@@ -57,17 +66,17 @@ function get_prop($prop) {
 
 function set_prop($prop, $val) {
     error_log("set_prop '$prop', '$val'", 0);
-    return send_mpv_cmd('set_property', $prop, $val);
+    return send_mpv_cmd('set_property', [ $prop, $val ]);
 }
 
-function run_command($cmd, $arg=null) {
-    error_log('run_command ' . $cmd . ', ' . $arg, 0);
+function run_command($cmd, $args=null) {
+    //error_log('run_command ' . $cmd . ', ' . json_encode($args), 0);
     switch($cmd) {
         case 'poweroff':
             poweroff();
             return;
     }
-    send_mpv_cmd($cmd, $arg);
+    send_mpv_cmd($cmd, $args);
 }
 
 function player_is_running() {
@@ -86,8 +95,8 @@ function start_player($filepath, $pos) {
     if (isset($pos) && $pos)
         $startarg = ' --start=' . $pos;
     else {
-        $startarg = '';
-        error_log("No start argument", 0);
+        $startarg = ' --start=0';
+        error_log("Starting from zero", 0);
     }
     $cmd = 'mpv --fs --input-ipc-server='
          . $SOCKETNAME . $startarg . ' ' . $filepath

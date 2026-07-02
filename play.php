@@ -3,7 +3,7 @@ $filepath = $_GET['file'];
 if (isset($_GET['pos']))
     $pos = $_GET['pos'];
 else
-    $pos = null;
+    $pos = 0;
 if (isset($_GET['volume']))
     $volume = $_GET['volume'];
 else
@@ -19,12 +19,15 @@ if (! player_is_running()) {
 
 else {
     // mpv is already running; tell it to load the new file and unpause.
-    run_command('loadfile', $filepath);
+    // When running loadfile, the position parameter it needs
+    // is start, not time-pos, and start accepts mm:ss.
+    // However, there's an undocumented quirk: if you want to use the
+    // 4th argument to set any runtime arguments like start,
+    // you have to set the third argument to -1.
+    run_command('loadfile', [$filepath, 'replace', -1, 'start=' . $pos]);
     sleep(3);
     set_prop('pause', "false");
 }
-
-sleep(2);
 
 if ($volume)
     set_prop('volume', $volume);

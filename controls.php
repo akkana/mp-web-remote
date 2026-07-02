@@ -22,7 +22,7 @@ function save_pos_to_file() {
             if (! empty($volume))
                 fwrite($fp, "volume = $volume\n");
             error_log("saved to pos file: filepath $filepath, curpos $curpos", 0);
-            run_command("show-text", "saved current position", 5000);
+            run_command("show-text", ["saved current position", 5000]);
             fclose($fp);
             return;
         }
